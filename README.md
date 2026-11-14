@@ -20,4 +20,9 @@ Personal configuration, linked into `~/.config` by `./install.sh`.
 
 ## waybar
 
-- `config.jsonc`, `style.css`: bar modules and style. `custom/focus` calls `~/.local/bin/focus` (not in this repo).
+- `config.jsonc`, `style.css`: bar modules and style. `custom/focus` calls `bin/focus`.
+- `mediaplayer.py`, `power_menu.xml`: from Waybar 0.15.0 `resources/custom_modules/`. `mediaplayer.py` needs `python-gobject` and `playerctl`.
+
+## bin
+
+- `focus`: focus session timer for niri / waybar / mako (linked to `~/.local/bin/focus`).

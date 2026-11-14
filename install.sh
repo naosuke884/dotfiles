@@ -4,8 +4,9 @@ set -euo pipefail
 repo="$(cd "$(dirname "$0")" && pwd)"
 stamp="$(date +%Y%m%d%H%M%S)"
 
+# link <path in repo> [destination]; the destination defaults to ~/.config/<path>.
 link() {
-  local src="$repo/$1" dst="$HOME/.config/$1"
+  local src="$repo/$1" dst="${2:-$HOME/.config/$1}"
   mkdir -p "$(dirname "$dst")"
   if [ -L "$dst" ] && [ "$(readlink "$dst")" = "$src" ]; then return; fi
   if [ -e "$dst" ] || [ -L "$dst" ]; then mv "$dst" "$dst.bak-$stamp"; fi
@@ -25,3 +26,6 @@ link niri/scripts
 link ghostty/config
 link waybar/config.jsonc
 link waybar/style.css
+link waybar/mediaplayer.py
+link waybar/power_menu.xml
+link bin/focus "$HOME/.local/bin/focus"

@@ -1,0 +1,201 @@
+#!/usr/bin/env python3
+"""Raycast Focus Session-like timer for niri / waybar / mako.
+
+  focus start [MIN] [GOAL...]  start a session (asks via fuzzel if omitted)
+  focus pause | resume | toggle
+  focus stop                   end the session early
+  focus status                 human-readable remaining time
+  focus waybar                 JSON for a waybar custom module
+  focus menu                   fuzzel menu (start / pause / stop)
+"""
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+STATE_DIR = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "focus"
+STATE = STATE_DIR / "session.json"
+LOG = STATE_DIR / "history.jsonl"
+DEFAULT_MIN = 25
+
+
+def load():
+    try:
+        return json.loads(STATE.read_text())
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
+
+
+def save(s):
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = STATE.with_suffix(".tmp")
+    tmp.write_text(json.dumps(s))
+    tmp.replace(STATE)
+
+
+def elapsed(s, now=None):
+    now = now or time.time()
+    end = s["paused_at"] or now
+    return end - s["started_at"] - s["paused_total"]
+
+
+def remaining(s):
+    return max(0, s["duration"] - elapsed(s))
+
+
+def fmt(sec):
+    sec = int(round(sec))
+    h, rem = divmod(sec, 3600)
+    m, s = divmod(rem, 60)
+    return f"{h}:{m:02d}:{s:02d}" if h else f"{m:02d}:{s:02d}"
+
+
+def notify(title, body="", urgency="normal"):
+    subprocess.run(["notify-send", "-a", "focus", "-u", urgency, title, body], check=False)
+
+
+def ask(prompt, options=()):
+    r = subprocess.run(
+        ["fuzzel", "--dmenu", "--prompt", prompt],
+        input="\n".join(options), capture_output=True, text=True,
+    )
+    return r.stdout.strip() if r.returncode == 0 else None
+
+
+def refresh_waybar():
+    # Signal-driven refresh: waybar module uses "signal": 8 -> SIGRTMIN+8
+    subprocess.run(["pkill", "-RTMIN+8", "-x", "waybar"], check=False)
+
+
+def finish(s, completed):
+    LOG.parent.mkdir(parents=True, exist_ok=True)
+    with LOG.open("a") as f:
+        f.write(json.dumps({
+            "goal": s["goal"], "planned_min": s["duration"] / 60,
+            "focused_min": round(elapsed(s) / 60, 1), "completed": completed,
+            "started_at": time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(s["started_at"])),
+        }, ensure_ascii=False) + "\n")
+    STATE.unlink(missing_ok=True)
+    refresh_waybar()
+
+
+def cmd_start(args):
+    if load():
+        print("session already running (focus stop to end it)", file=sys.stderr)
+        return 1
+    minutes = None
+    if args and args[0].replace(".", "", 1).isdigit():
+        minutes = float(args.pop(0))
+    goal = " ".join(args)
+    if minutes is None:
+        pick = ask("minutes: ", ["25", "50", "90", "15"])
+        if not pick:
+            return 1
+        minutes = float(pick)
+    if not goal:
+        goal = ask("goal: ") or "Focus"
+    s = {"goal": goal, "duration": minutes * 60, "started_at": time.time(),
+         "paused_at": None, "paused_total": 0.0}
+    save(s)
+    # Detached watcher that fires the completion notification.
+    subprocess.Popen([sys.executable, __file__, "_watch", str(s["started_at"])],
+                     start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    notify(f"🎯 {goal}", f"{fmt(s['duration'])} のフォーカスを開始")
+    refresh_waybar()
+    return 0
+
+
+def cmd_watch(args):
+    token = float(args[0])
+    while True:
+        s = load()
+        if not s or s["started_at"] != token:
+            return 0  # stopped or replaced
+        if not s["paused_at"] and remaining(s) <= 0:
+            finish(s, completed=True)
+            notify("✅ フォーカス完了", s["goal"], urgency="critical")
+            return 0
+        time.sleep(1)
+
+
+def cmd_pause(_):
+    s = load()
+    if not s or s["paused_at"]:
+        return 1
+    s["paused_at"] = time.time()
+    save(s)
+    refresh_waybar()
+    return 0
+
+
+def cmd_resume(_):
+    s = load()
+    if not s or not s["paused_at"]:
+        return 1
+    s["paused_total"] += time.time() - s["paused_at"]
+    s["paused_at"] = None
+    save(s)
+    refresh_waybar()
+    return 0
+
+
+def cmd_toggle(_):
+    s = load()
+    if not s:
+        return cmd_start([])
+    return cmd_resume([]) if s["paused_at"] else cmd_pause([])
+
+
+def cmd_stop(_):
+    s = load()
+    if not s:
+        return 1
+    finish(s, completed=False)
+    notify("⏹ フォーカス終了", f"{s['goal']}({fmt(elapsed(s))} 集中)")
+    return 0
+
+
+def cmd_status(_):
+    s = load()
+    if not s:
+        print("no session")
+        return 1
+    state = " (paused)" if s["paused_at"] else ""
+    print(f"{s['goal']}  {fmt(remaining(s))} left{state}")
+    return 0
+
+
+def cmd_waybar(_):
+    s = load()
+    if not s:
+        out = {"text": "", "class": "idle", "tooltip": "focus: idle"}
+    else:
+        icon = "⏸" if s["paused_at"] else "🎯"
+        out = {"text": f"{icon} {fmt(remaining(s))}",
+               "tooltip": f"{s['goal']}\n{fmt(elapsed(s))} / {fmt(s['duration'])}",
+               "class": "paused" if s["paused_at"] else "running",
+               "percentage": int(100 * elapsed(s) / s["duration"])}
+    print(json.dumps(out, ensure_ascii=False), flush=True)
+    return 0
+
+
+def cmd_menu(_):
+    s = load()
+    if not s:
+        return cmd_start([])
+    pick = ask(f"{s['goal']} {fmt(remaining(s))}: ",
+               ["resume" if s["paused_at"] else "pause", "stop"])
+    return {"pause": cmd_pause, "resume": cmd_resume, "stop": cmd_stop}.get(pick, lambda _: 1)([])
+
+
+COMMANDS = {"start": cmd_start, "pause": cmd_pause, "resume": cmd_resume, "toggle": cmd_toggle,
+            "stop": cmd_stop, "status": cmd_status, "waybar": cmd_waybar, "menu": cmd_menu,
+            "_watch": cmd_watch}
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS:
+        print(__doc__.strip())
+        sys.exit(2)
+    sys.exit(COMMANDS[sys.argv[1]](sys.argv[2:]) or 0)
