@@ -1,0 +1,3 @@
+# herdr (Ghostty 経由) の通知をクリックしたら該当ペインへ移動する
+[desktop-entry=com.mitchellh.ghostty]
+on-button-left=exec /home/hayashi-naoki/.local/bin/herdr-notify-focus "$id"

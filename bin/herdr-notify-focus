@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+"""mako の通知クリック時に、herdr の該当ペインへフォーカスを移す。
+
+mako config から `on-button-left=exec herdr-notify-focus "$id"` で呼ばれる。
+通知本文 "claude finished: <workspace label> · <workspace number>" から
+ワークスペースを特定し、Ghostty ウィンドウを前面に出して herdr のペインを選択する。
+"""
+import json
+import re
+import subprocess
+import sys
+
+HERDR = "/home/hayashi-naoki/.local/bin/herdr"
+BODY_RE = re.compile(r"^(?P<agent>\S+) [^:]+: (?P<label>.+?) · (?P<num>\S+)$")
+
+
+def run(*cmd):
+    return subprocess.run(cmd, capture_output=True, text=True).stdout
+
+
+def herdr_json(*args):
+    try:
+        return json.loads(run(HERDR, *args))["result"]
+    except Exception:
+        return {}
+
+
+def find_body(nid):
+    for sub in ("list", "history"):
+        try:
+            for n in json.loads(run("makoctl", sub, "-j")):
+                if str(n.get("id")) == nid:
+                    return n.get("body") or ""
+        except Exception:
+            pass
+    return ""
+
+
+def focus_ghostty():
+    try:
+        windows = json.loads(run("niri", "msg", "-j", "windows"))
+    except Exception:
+        return
+    ghostty = [w for w in windows if w.get("app_id") == "com.mitchellh.ghostty"]
+    if ghostty:
+        subprocess.run(["niri", "msg", "action", "focus-window", "--id", str(ghostty[0]["id"])])
+
+
+def main():
+    nid = sys.argv[1] if len(sys.argv) > 1 else ""
+    body = find_body(nid)
+    if nid:
+        subprocess.run(["makoctl", "dismiss", "-n", nid])
+    focus_ghostty()
+
+    m = BODY_RE.match(body.strip())
+    if not m:
+        return
+    workspaces = herdr_json("workspace", "list").get("workspaces", [])
+    ws = [w for w in workspaces if w.get("label") == m["label"]]
+    if len(ws) > 1:
+        ws = [w for w in ws if str(w.get("number")) == m["num"]] or ws
+    if not ws:
+        ws = [w for w in workspaces if str(w.get("number")) == m["num"]]
+    if not ws:
+        return
+    ws_id = ws[0]["workspace_id"]
+
+    agents = [
+        a for a in herdr_json("agent", "list").get("agents", [])
+        if a.get("workspace_id") == ws_id and a.get("agent") == m["agent"]
+    ]
+    # 通知の原因になった(未確認の done / blocked)ペインを優先し、無ければ最後に状態が変わったもの
+    agents.sort(key=lambda a: (a.get("agent_status") in ("done", "blocked"), a.get("state_change_seq", 0)), reverse=True)
+    if agents:
+        r = subprocess.run([HERDR, "agent", "focus", agents[0]["pane_id"]], capture_output=True)
+        if r.returncode == 0:
+            return
+    subprocess.run([HERDR, "workspace", "focus", ws_id], capture_output=True)
+
+
+if __name__ == "__main__":
+    main()

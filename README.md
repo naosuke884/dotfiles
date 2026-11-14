@@ -23,6 +23,11 @@ Personal configuration, linked into `~/.config` by `./install.sh`.
 - `config.jsonc`, `style.css`: bar modules and style. `custom/focus` calls `bin/focus`.
 - `mediaplayer.py`, `power_menu.xml`: from Waybar 0.15.0 `resources/custom_modules/`. `mediaplayer.py` needs `python-gobject` and `playerctl`.
 
+## mako
+
+- `config`: clicking a herdr notification (sent through Ghostty) focuses that pane via `bin/herdr-notify-focus`.
+
 ## bin
 
 - `focus`: focus session timer for niri / waybar / mako (linked to `~/.local/bin/focus`).
+- `herdr-notify-focus`: called from mako on notification click (linked to `~/.local/bin/herdr-notify-focus`).
