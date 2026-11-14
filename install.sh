@@ -22,3 +22,4 @@ link herdr-app/mods/my-tabs
 link herdr-app/mods/my-spaces
 link niri/config.kdl
 link niri/scripts
+link ghostty/config

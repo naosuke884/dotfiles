@@ -13,3 +13,7 @@ Personal configuration, linked into `~/.config` by `./install.sh`.
 
 - `config.kdl`: includes a window rule that opens Zed at 1/3 of the screen width.
 - `scripts/`: helper scripts referenced from `config.kdl`.
+
+## ghostty
+
+- `config`: background opacity 0.8, ctrl+enter unbound (no fullscreen toggle).

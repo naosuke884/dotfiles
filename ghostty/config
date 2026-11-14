@@ -1,0 +1,5 @@
+# 背景の透過(0.0〜1.0、小さいほど透明)
+background-opacity = 0.8
+
+# Ctrl+Enter での全画面切り替えを無効化
+keybind = ctrl+enter=unbind
