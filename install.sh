@@ -23,3 +23,5 @@ link herdr-app/mods/my-spaces
 link niri/config.kdl
 link niri/scripts
 link ghostty/config
+link waybar/config.jsonc
+link waybar/style.css

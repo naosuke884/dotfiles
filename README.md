@@ -17,3 +17,7 @@ Personal configuration, linked into `~/.config` by `./install.sh`.
 ## ghostty
 
 - `config`: background opacity 0.8, ctrl+enter unbound (no fullscreen toggle).
+
+## waybar
+
+- `config.jsonc`, `style.css`: bar modules and style. `custom/focus` calls `~/.local/bin/focus` (not in this repo).
