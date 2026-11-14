@@ -4,9 +4,10 @@ Personal configuration, linked into `~/.config` by `./install.sh`.
 
 ## herdr-app
 
-- `layouts/my-main.json`: clone of the shipped `main` layout. The right Files/Changes panel is removed; uses `my-tabs` and `my-spaces`.
+- `layouts/my-main.json`: clone of the shipped `main` layout. The right Files/Changes panel is removed; uses `my-tabs`, `my-spaces` and `my-toast`.
 - `mods/my-tabs`: tab bar with a **Zed** button instead of the Files/Changes buttons. Opens the focused pane's folder in Zed, over `zed ssh://` for spaces on other machines.
 - `mods/my-spaces`: simplified spaces list (color dots instead of letter tiles, no folding, no "New space there" rows, no + next to the "Spaces" heading).
+- `mods/my-toast`: notifications. In-app toast while the window is in front; otherwise a desktop notification (mako) through `bin/herdr-notify-focus`, which brings the window back and runs the notification's action when clicked.
 - `settings.json`, `keys.json`, `themes/`: personal look and keys.
 
 ## niri
@@ -25,9 +26,9 @@ Personal configuration, linked into `~/.config` by `./install.sh`.
 
 ## mako
 
-- `config`: clicking a herdr notification (sent through Ghostty) focuses that pane via `bin/herdr-notify-focus`.
+- `config`: left-click on a Herdr notification runs its default action (back to herdr-app).
 
 ## bin
 
 - `focus`: focus session timer for niri / waybar / mako (linked to `~/.local/bin/focus`).
-- `herdr-notify-focus`: called from mako on notification click (linked to `~/.local/bin/herdr-notify-focus`).
+- `herdr-notify-focus`: sends herdr-app notifications to the desktop and handles the click (linked to `~/.local/bin/herdr-notify-focus`).

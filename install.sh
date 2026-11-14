@@ -21,6 +21,7 @@ link herdr-app/themes/gruvbox.json
 link herdr-app/themes/atom-one-dark.json
 link herdr-app/mods/my-tabs
 link herdr-app/mods/my-spaces
+link herdr-app/mods/my-toast
 link niri/config.kdl
 link niri/scripts
 link ghostty/config

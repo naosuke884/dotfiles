@@ -1,3 +1,5 @@
-# herdr (Ghostty 経由) の通知をクリックしたら該当ペインへ移動する
-[desktop-entry=com.mitchellh.ghostty]
-on-button-left=exec /home/hayashi-naoki/.local/bin/herdr-notify-focus "$id"
+# herdr-app の通知(bin/herdr-notify-focus が送る)は、左クリックで既定アクションを実行して
+# herdr-app の該当箇所へ移動する。mako の既定(on-button-left=invoke-default-action)のままでよいので
+# ここでは明示するだけ。
+[app-name=Herdr]
+on-button-left=invoke-default-action

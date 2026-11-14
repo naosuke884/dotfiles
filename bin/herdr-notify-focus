@@ -1,82 +1,55 @@
 #!/usr/bin/env python3
-"""mako の通知クリック時に、herdr の該当ペインへフォーカスを移す。
+"""herdr-app の通知をデスクトップ通知(mako)に出し、クリックされたら該当箇所へ移動する。
 
-mako config から `on-button-left=exec herdr-notify-focus "$id"` で呼ばれる。
-通知本文 "claude finished: <workspace label> · <workspace number>" から
-ワークスペースを特定し、Ghostty ウィンドウを前面に出して herdr のペインを選択する。
+herdr-app の my-toast mod から、ウィンドウが前面にないときに呼ばれる:
+  herdr-notify-focus <title> <body> <level> [<action-json>]
+<action-json> は herdr の通知 action ({"name": "agent.focus", "args": {...}})。
+
+すぐに戻り、通知の待ち受けは切り離した子プロセスで行う(mod の exec をふさがないため)。
+クリックされたら herdr-app のウィンドウを niri で前面に出し、action を herdr-app do で実行する。
 """
 import json
-import re
+import os
 import subprocess
 import sys
 
-HERDR = "/home/hayashi-naoki/.local/bin/herdr"
-BODY_RE = re.compile(r"^(?P<agent>\S+) [^:]+: (?P<label>.+?) · (?P<num>\S+)$")
-
-
-def run(*cmd):
-    return subprocess.run(cmd, capture_output=True, text=True).stdout
-
-
-def herdr_json(*args):
-    try:
-        return json.loads(run(HERDR, *args))["result"]
-    except Exception:
-        return {}
-
-
-def find_body(nid):
-    for sub in ("list", "history"):
-        try:
-            for n in json.loads(run("makoctl", sub, "-j")):
-                if str(n.get("id")) == nid:
-                    return n.get("body") or ""
-        except Exception:
-            pass
-    return ""
-
-
-def focus_ghostty():
-    try:
-        windows = json.loads(run("niri", "msg", "-j", "windows"))
-    except Exception:
-        return
-    ghostty = [w for w in windows if w.get("app_id") == "com.mitchellh.ghostty"]
-    if ghostty:
-        subprocess.run(["niri", "msg", "action", "focus-window", "--id", str(ghostty[0]["id"])])
+URGENCY = {"error": "critical", "warning": "normal", "success": "normal", "info": "low"}
 
 
 def main():
-    nid = sys.argv[1] if len(sys.argv) > 1 else ""
-    body = find_body(nid)
-    if nid:
-        subprocess.run(["makoctl", "dismiss", "-n", nid])
-    focus_ghostty()
+    title = sys.argv[1] if len(sys.argv) > 1 else "Herdr"
+    body = sys.argv[2] if len(sys.argv) > 2 else ""
+    level = sys.argv[3] if len(sys.argv) > 3 else "info"
+    try:
+        action = json.loads(sys.argv[4]) if len(sys.argv) > 4 and sys.argv[4] else None
+    except json.JSONDecodeError:
+        action = None
 
-    m = BODY_RE.match(body.strip())
-    if not m:
+    # Detach: the caller (herdr-app exec) returns at once.
+    if os.fork() > 0:
         return
-    workspaces = herdr_json("workspace", "list").get("workspaces", [])
-    ws = [w for w in workspaces if w.get("label") == m["label"]]
-    if len(ws) > 1:
-        ws = [w for w in ws if str(w.get("number")) == m["num"]] or ws
-    if not ws:
-        ws = [w for w in workspaces if str(w.get("number")) == m["num"]]
-    if not ws:
-        return
-    ws_id = ws[0]["workspace_id"]
+    os.setsid()
+    if os.fork() > 0:
+        os._exit(0)
 
-    agents = [
-        a for a in herdr_json("agent", "list").get("agents", [])
-        if a.get("workspace_id") == ws_id and a.get("agent") == m["agent"]
-    ]
-    # 通知の原因になった(未確認の done / blocked)ペインを優先し、無ければ最後に状態が変わったもの
-    agents.sort(key=lambda a: (a.get("agent_status") in ("done", "blocked"), a.get("state_change_seq", 0)), reverse=True)
-    if agents:
-        r = subprocess.run([HERDR, "agent", "focus", agents[0]["pane_id"]], capture_output=True)
-        if r.returncode == 0:
-            return
-    subprocess.run([HERDR, "workspace", "focus", ws_id], capture_output=True)
+    r = subprocess.run(
+        ["notify-send", "--app-name=Herdr", "--hint=string:desktop-entry:herdr-app",
+         f"--urgency={URGENCY.get(level, 'normal')}", "--action=default=Open", title, body],
+        capture_output=True, text=True,
+    )
+    if r.stdout.strip() != "default":
+        return  # dismissed or expired
+
+    try:
+        windows = json.loads(subprocess.run(["niri", "msg", "-j", "windows"], capture_output=True, text=True).stdout)
+        herdr = [w for w in windows if w.get("app_id") == "herdr-app"]
+        if herdr:
+            subprocess.run(["niri", "msg", "action", "focus-window", "--id", str(herdr[0]["id"])])
+    except Exception:
+        pass
+    if action and action.get("name"):
+        subprocess.run(["herdr-app", "do", action["name"], json.dumps(action.get("args") or {})],
+                       capture_output=True)
 
 
 if __name__ == "__main__":
