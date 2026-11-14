@@ -32,3 +32,4 @@ link waybar/power_menu.xml
 link bin/focus "$HOME/.local/bin/focus"
 link bin/herdr-notify-focus "$HOME/.local/bin/herdr-notify-focus"
 link mako/config
+link fuzzel/fuzzel.ini

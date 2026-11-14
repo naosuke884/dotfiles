@@ -28,6 +28,10 @@ Personal configuration, linked into `~/.config` by `./install.sh`.
 
 - `config`: left-click on a Herdr notification runs its default action (back to herdr-app).
 
+## fuzzel
+
+- `fuzzel.ini`: icon theme Adwaita.
+
 ## bin
 
 - `focus`: focus session timer for niri / waybar / mako (linked to `~/.local/bin/focus`).
