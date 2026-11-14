@@ -33,3 +33,4 @@ link bin/focus "$HOME/.local/bin/focus"
 link bin/herdr-notify-focus "$HOME/.local/bin/herdr-notify-focus"
 link mako/config
 link fuzzel/fuzzel.ini
+link swaylock/config

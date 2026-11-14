@@ -32,6 +32,10 @@ Personal configuration, linked into `~/.config` by `./install.sh`.
 
 - `fuzzel.ini`: icon theme Adwaita.
 
+## swaylock
+
+- `config`: caps lock indicator, failed-attempt count, ignore empty passwords.
+
 ## bin
 
 - `focus`: focus session timer for niri / waybar / mako (linked to `~/.local/bin/focus`).
