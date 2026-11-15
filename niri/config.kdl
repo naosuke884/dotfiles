@@ -662,6 +662,9 @@ binds {
 
     // clipboard history (cliphist + fuzzel): コピー + テキストなら入力もする
     Mod+N { spawn "/home/hayashi-naoki/.config/niri/scripts/cliphist-fuzzel.sh"; }
+
+    // pomodoro timer (solanum)
+    Mod+Alt+F hotkey-overlay-title="Pomodoro timer: solanum" { spawn "solanum"; }
 }
 
 // ##### custom config start ######
