@@ -1,0 +1,91 @@
+#!/usr/bin/env python3
+"""Sticky (pinned) floating windows for niri.
+
+  niri-sticky toggle   pin/unpin the focused window (pinning also makes it floating)
+  niri-sticky daemon   follow workspace switches; run once via spawn-at-startup
+
+Pinned window ids live in $XDG_RUNTIME_DIR/niri-sticky (one id per line).
+"""
+import json
+import os
+import subprocess
+import sys
+
+STATE = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "niri-sticky")
+
+
+def msg(*args):
+    out = subprocess.run(["niri", "msg", "--json", *args], capture_output=True, text=True).stdout
+    return json.loads(out) if out.strip() else None
+
+
+def action(*args):
+    subprocess.run(["niri", "msg", "action", *args], capture_output=True)
+
+
+def load():
+    try:
+        with open(STATE) as f:
+            return [int(line) for line in f if line.strip()]
+    except FileNotFoundError:
+        return []
+
+
+def save(ids):
+    with open(STATE, "w") as f:
+        f.writelines(f"{i}\n" for i in ids)
+
+
+def notify(text):
+    subprocess.run(["notify-send", "-a", "niri-sticky", "-t", "2000", "niri-sticky", text])
+
+
+def toggle():
+    win = msg("focused-window")
+    if not win:
+        return
+    ids = load()
+    if win["id"] in ids:
+        ids.remove(win["id"])
+        notify(f"ピン解除: {win['title']}")
+    else:
+        ids.append(win["id"])
+        action("move-window-to-floating", "--id", str(win["id"]))
+        notify(f"ピン留め: {win['title']}")
+    save(ids)
+
+
+def follow(ws_id):
+    ids = load()
+    if not ids:
+        return
+    windows = {w["id"]: w for w in msg("windows")}
+    alive = [i for i in ids if i in windows]
+    if alive != ids:
+        save(alive)
+    for i in alive:
+        if windows[i]["workspace_id"] == ws_id:
+            continue
+        # Re-read every time: moving a window can delete an emptied workspace and shift indices.
+        ws = next((w for w in msg("workspaces") if w["id"] == ws_id), None)
+        if ws is None:
+            return
+        action("move-window-to-workspace", "--window-id", str(i), "--focus", "false", str(ws["idx"]))
+
+
+def daemon():
+    stream = subprocess.Popen(["niri", "msg", "--json", "event-stream"], stdout=subprocess.PIPE, text=True)
+    for line in stream.stdout:
+        ev = json.loads(line).get("WorkspaceActivated")
+        if ev and ev["focused"]:
+            follow(ev["id"])
+
+
+if __name__ == "__main__":
+    cmd = sys.argv[1] if len(sys.argv) > 1 else ""
+    if cmd == "toggle":
+        toggle()
+    elif cmd == "daemon":
+        daemon()
+    else:
+        sys.exit(__doc__)

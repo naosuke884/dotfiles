@@ -620,6 +620,8 @@ binds {
     // Move the focused window between the floating and the tiling layout.
     Mod+V       { toggle-window-floating; }
     Mod+Shift+V { switch-focus-between-floating-and-tiling; }
+    // Pin the focused window: make it floating and have it follow workspace switches.
+    Mod+P hotkey-overlay-title="Pin Window (sticky floating)" { spawn-sh "~/.local/bin/niri-sticky toggle"; }
 
     // Toggle tabbed column display mode.
     // Windows in this column will appear as vertical tabs,
@@ -694,3 +696,6 @@ spawn-at-startup "handy"
 // (1Password already autostarts via ~/.config/autostart/1password.desktop)
 spawn-at-startup "firefox"
 spawn-at-startup "ghostty"
+
+// Sticky floating windows: moves pinned windows (Mod+P) to the workspace you switch to.
+spawn-sh-at-startup "~/.local/bin/niri-sticky daemon"

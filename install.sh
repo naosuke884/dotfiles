@@ -30,6 +30,7 @@ link waybar/style.css
 link waybar/mediaplayer.py
 link waybar/power_menu.xml
 link bin/herdr-notify-focus "$HOME/.local/bin/herdr-notify-focus"
+link bin/niri-sticky "$HOME/.local/bin/niri-sticky"
 link mako/config
 link fuzzel/fuzzel.ini
 link swaylock/config
