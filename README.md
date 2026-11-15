@@ -6,8 +6,8 @@ Personal configuration, linked into `~/.config` by `./install.sh`.
 
 - `layouts/my-main.json`: clone of the shipped `main` layout. The right Files/Changes panel is removed; uses `my-tabs`, `my-spaces` and `my-toast`.
 - `mods/my-tabs`: tab bar with a **Zed** button instead of the Files/Changes buttons. Opens the focused pane's folder in Zed, over `zed ssh://` for spaces on other machines.
-- `mods/my-spaces`: simplified spaces list (color dots instead of letter tiles, no folding, no "New space there" rows, no + next to the "Spaces" heading).
-- `mods/my-toast`: notifications. In-app toast while the window is in front; otherwise a desktop notification (mako) through `bin/herdr-notify-focus`, which brings the window back and runs the notification's action when clicked.
+- `mods/my-spaces`: simplified spaces list (color dots instead of letter tiles, no folding, no "New space there" rows, no + next to the "Spaces" heading). Each machine header has two buttons instead of one +: new terminal space, new Claude Code space.
+- `mods/my-toast`: notifications. Always a desktop notification (mako) through `bin/herdr-notify-focus`, never an in-app toast; clicking it brings the window back and runs the notification's action.
 - `settings.json`, `keys.json`, `themes/`: personal look and keys.
 
 ## niri
