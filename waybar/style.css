@@ -325,15 +325,3 @@ label:focus {
 #privacy-item.audio-out {
     background-color: #0069d4;
 }
-
-#custom-focus {
-    padding: 0 10px;
-}
-#custom-focus.running {
-    background-color: #e67e22;
-    color: #ffffff;
-}
-#custom-focus.paused {
-    background-color: #7f8c8d;
-    color: #ffffff;
-}

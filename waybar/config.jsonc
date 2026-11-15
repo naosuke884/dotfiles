@@ -16,7 +16,6 @@
         "sway/window"
     ],
     "modules-right": [
-        "custom/focus",
         "mpd",
         "idle_inhibitor",
         "pulseaudio",
@@ -59,14 +58,6 @@
             "locked": "",
             "unlocked": ""
         }
-    },
-    "custom/focus": {
-        "exec": "/home/hayashi-naoki/.local/bin/focus waybar",
-        "return-type": "json",
-        "interval": 1,
-        "signal": 8,
-        "on-click": "/home/hayashi-naoki/.local/bin/focus menu",
-        "on-click-right": "/home/hayashi-naoki/.local/bin/focus toggle"
     },
     "sway/mode": {
         "format": "<span style=\"italic\">{}</span>"

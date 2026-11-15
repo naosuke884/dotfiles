@@ -662,9 +662,6 @@ binds {
 
     // clipboard history (cliphist + fuzzel): コピー + テキストなら入力もする
     Mod+N { spawn "/home/hayashi-naoki/.config/niri/scripts/cliphist-fuzzel.sh"; }
-
-    // focus session timer (~/.local/bin/focus): 未開始なら開始、実行中なら一時停止/終了メニュー
-    Mod+Alt+F hotkey-overlay-title="Focus session" { spawn "/home/hayashi-naoki/.local/bin/focus" "menu"; }
 }
 
 // ##### custom config start ######
